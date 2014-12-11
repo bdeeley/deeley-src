@@ -1,0 +1,57 @@
+#!/bin/bash
+###################################
+#Setup Raspberry Pi Hadoop node
+#brad deeley 12092014
+###################################
+
+MSTRIP=192.168.1.127
+SLVEIP=192.168.1.116
+
+####user accounts and ssh
+addgroup hadoop
+grep hadoop /etc/group
+if [ $? = 0 ]
+then
+echo "group hadoop exists"
+else
+adduser -ingroup hadoop hduser
+sudo -u hduser ssh-keygen -t rsa -P ""
+sudo -u hduser cat /home/hduser/.ssh/id_rsa.pub >> /home/hduser/.ssh/authorized_keys
+chown hduser:hadoop /home/hduser/.ssh/authorized_keys
+sudo -u hduser ssh localhost
+fi
+
+####host file manipulation
+grep master /etc/hosts
+if [ $? = 0 ]
+then
+echo "/etc/hosts already has master slave entries - not editing"
+else
+echo "$MSTRIP    master" >> /etc/hosts
+echo "$SLVEIP    slave" >> /etc/hosts
+fi
+
+####check master
+ifconfig -a |grep $MSTRIP
+if [ $? = 0 ]
+then
+#sudo -u hduser ssh-copy-id -i /home/hduser/.ssh/id_rsa.pub hduser@slave
+echo "placeholder"
+else
+echo "do something to the slave here"
+fi
+
+####install packages
+apt-get install openjdk-7-jdk -y
+java -version
+wget http://mirror.catn.com/pub/apache/hadoop/core/hadoop-1.1.2/hadoop-1.1.2.tar.gz
+tar vxzf hadoop-1.1.2.tar.gz -C /usr/local
+cd /usr/local
+mv hadoop-1.1.2 hadoop
+chown -R hduser:hadoop hadoop
+echo "export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-armhf" >> /home/hduser/.bashrc
+echo "export HADOOP_INSTALL=/usr/local/hadoop" >> /home/hduser/.bashrc
+echo "export PATH=$PATH:$HADOOP_INSTALL/bin" >> /home/hduser/.bashrc
+
+
+
